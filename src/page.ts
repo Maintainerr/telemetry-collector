@@ -139,10 +139,15 @@ export const PAGE = `<!doctype html>
       feature: 'Features in use', notif_agent: 'Notification agents',
       locale: 'Locale', media_type: 'Rule media types',
       arr_action: 'Collection *arr actions' };
+    // arr_action arrives as Maintainerr's action names in upper case. The
+    // stored token is left verbatim; only the display is normalised, so every
+    // card reads the same way.
+    const display = (metric, value) =>
+      metric === 'arr_action' ? String(value).toLowerCase() : value;
     for (const [metric, pairs] of Object.entries(groups)) {
       pairs.sort((a, b) => b[1] - a[1]);
       const est = pairs.slice(0, 12).map(([k, v]) =>
-        [k, Math.round((v / sampleAll) * total)]);
+        [display(metric, k), Math.round((v / sampleAll) * total)]);
       html += card((LABELS[metric] ?? metric) + ' (estimated)',
         rows(est, total, '~'));
     }
