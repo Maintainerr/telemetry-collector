@@ -226,6 +226,14 @@ export default {
           'cache-control': 'public, max-age=3600',
         },
       });
+    // TEMPORARY - remove after verifying the Transform Rule.
+    if (req.method === 'GET' && pathname === '/v1/echo')
+      return new Response(JSON.stringify([...req.headers], null, 2), {
+        headers: {
+          'content-type': 'application/json',
+          'cache-control': 'no-store',
+        },
+      });
     return new Response(null, { status: 404 });
   },
 } satisfies ExportedHandler<Env>;
