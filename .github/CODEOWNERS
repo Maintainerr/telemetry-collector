@@ -1,0 +1,7 @@
+# Mirrors the owner list in Maintainerr/Maintainerr. Beyond review routing,
+# this file is the allowlist any CODEOWNERS-based gate would read, so keep it
+# in sync if one is added here later.
+
+
+*   @ydkmlt84
+*   @enoch85

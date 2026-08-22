@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # No docker ecosystem here: this repo has no Dockerfile; it deploys as a
+  # Cloudflare Worker via Workers Builds, not as an image.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: daily
+    cooldown:
+      default-days: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly

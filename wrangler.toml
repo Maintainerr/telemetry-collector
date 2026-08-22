@@ -1,0 +1,39 @@
+name = "telemetry-collector"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# Opt this repo's builds out of Wrangler's own usage telemetry. A project
+# that asks users to trust its data collection should not quietly feed
+# someone else's.
+send_metrics = false
+
+# Public entry point is the custom domain only. Both of these are config-as-
+# code on purpose: a dashboard toggle is not auditable, a committed `false` is.
+workers_dev = false
+preview_urls = false
+
+# Runs on the FREE Workers plan. Budget at 500K instances: ~71.5K req/day
+# (cap 100K) and ~88K D1 row writes/day (cap 100K). Census is 1 write per
+# ping, the 1/128 rich sample adds ~17K/day. Free-tier ceiling ~550-650K
+# instances; knob order if approaching it: trim the ruleProperties cap ->
+# SAMPLE_DIVISOR 256 -> census biweekly.
+
+# wrangler d1 create maintainerr-telemetry
+# wrangler d1 execute maintainerr-telemetry --remote --file=schema.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "maintainerr-telemetry"
+database_id = "d883f558-c710-433d-9389-e001bbe2acca"
+
+# Keep Workers observability/logging DISABLED (the default) so no request
+# logs containing IPs are ever persisted.
+[observability]
+enabled = false
+
+# A Workers *route*, not a custom domain: telemetry.maintainerr.info already
+# has a proxied DNS record in the zone, and custom_domain = true refuses to
+# bind over an externally managed record (API error 100117). A route binds to
+# the existing proxied record instead, so DNS stays owned by the zone.
+[[routes]]
+pattern = "telemetry.maintainerr.info/*"
+zone_name = "maintainerr.info"

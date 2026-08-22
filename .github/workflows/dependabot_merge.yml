@@ -1,0 +1,81 @@
+name: Dependabot auto-merge
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.MERGE_APP_ID }}
+          private-key: ${{ secrets.MERGE_APP_KEY }}
+
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3.1.0
+        with:
+          github-token: "${{ steps.app-token.outputs.token }}"
+          skip-commit-verification: true
+
+      - name: Approve PR + merge after the deploy check passes
+        if: ${{ steps.metadata.outputs.update-type != 'version-update:semver-major' }}
+        run: |
+          set -euo pipefail
+          review_decision=$(gh pr view "$PR_URL" --json reviewDecision -q .reviewDecision)
+          if [ "$review_decision" != "APPROVED" ]; then
+            gh pr review --approve "$PR_URL"
+          else
+            echo "PR already approved."
+          fi
+
+          # Maintainerr/Maintainerr waits with `gh pr checks --required --watch`.
+          # That is not usable here yet: it needs branch protection with the
+          # deploy marked as a required check, which is not configured.
+          # Plain `--watch` is not a safe substitute either: this job runs on
+          # pull_request_target, so it appears in the PR's own check list and
+          # would end up waiting on itself.
+          #
+          # So poll the one check that actually gates correctness: the Cloudflare
+          # Workers Builds deploy. Switch to the upstream `--required --watch`
+          # line once branch protection is available and this check is required.
+          echo "Waiting for the Workers Builds check to conclude..."
+          # `gh pr checks` exits 1 when a PR has no checks reported yet, which is
+          # the normal state for the first seconds after Dependabot opens one.
+          # Swallow that so the poll keeps waiting instead of failing the job.
+          state=""
+          for _ in $(seq 1 60); do
+            checks=$(gh pr checks "$PR_URL" --json name,state 2>/dev/null || echo '[]')
+            state=$(printf '%s' "$checks" \
+              | jq -r '[.[] | select(.name | startswith("Workers Builds")) | .state] | first // "PENDING"')
+            case "$state" in
+              SUCCESS)
+                echo "Deploy check passed."
+                break
+                ;;
+              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STALE)
+                echo "::error title=Deploy check failed::Workers Builds reported ${state}; not merging."
+                exit 1
+                ;;
+              *)
+                sleep 20
+                ;;
+            esac
+          done
+
+          if [ "$state" != "SUCCESS" ]; then
+            echo "::error title=Deploy check timed out::Workers Builds did not conclude in 20 minutes."
+            exit 1
+          fi
+
+          echo "Merging..."
+          gh pr merge --admin --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
