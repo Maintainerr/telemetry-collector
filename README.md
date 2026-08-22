@@ -107,8 +107,11 @@ one.
 | `features[]` | `feature` | 10 | 32 chars | `overlays` |
 | `notificationAgents[]` | `notif_agent` | 16 | 24 chars | `discord` |
 | `mediaTypes[]` | `media_type` | 4 | 8 chars | `movie` |
-| `arrActions[]` | `arr_action` | 6 | 32 chars | `unmonitor` |
+| `arrActions[]` | `arr_action` | 6 | 32 chars | `UNMONITOR` |
 
+`arr_action` values arrive as Maintainerr's action names in upper case and are
+stored verbatim; the dashboard shows them in lower case so every metric reads
+the same way.
 `rule_prop` values come from Maintainerr's own fixed property list.
 `integrations` is drawn from `radarr`, `sonarr`, `sportarr`, `seerr`,
 `tautulli`, `streamystats`, `tracearr`, `downloadClient`; `features` from
@@ -128,12 +131,30 @@ A privacy page that lists only its strengths is not worth much. Every point
 below is stated with its consequence, because a caveat that leaves you with a
 new question is not a disclosure, it is a worry.
 
-**Does this open a way into my server? No, and it cannot.** Traffic only ever
-goes one way. Maintainerr makes an outbound HTTPS request, the same as your
-browser loading a page, and that is the whole interaction. No port is opened,
-nothing is exposed to the internet, nothing is installed, and nothing reaches
-your media server, your *arr apps, or anything else on your network. The
-collector is `telemetry.maintainerr.info` and it never contacts you.
+| Question | Answer |
+| --- | --- |
+| 1. Does this open a way into my server? | No, and it cannot. |
+| 2. Do we have your IP address? | No. |
+| 2a. Does Cloudflare see it? | Yes, like every server you connect to. |
+| 2b. Does this worker read it? | No. |
+| 2c. Is it stored anywhere? | No. There is no column for it. |
+| 2d. Can we look it up later? | No. Nothing was kept. |
+| 3. Could my setup be unusual enough to identify me? | No. |
+| 4. Can someone watching my network see the pings? | Yes, and nothing more. |
+| 5. How long do you keep it? | Indefinitely, and it makes no difference. |
+| 6. Can I have my data deleted? | There is nothing to delete. |
+| 7. Anyone can post to the endpoint. Is that a risk to me? | No. |
+
+Here is each of those, with the reasoning.
+
+### 1. Does this open a way into my server?
+
+**No, and it cannot.** Traffic only ever goes one way. Maintainerr makes an
+outbound HTTPS request, the same as your browser loading a page, and that is
+the whole interaction. No port is opened, nothing is exposed to the internet,
+nothing is installed, and nothing reaches your media server, your *arr apps,
+or anything else on your network. The collector is
+`telemetry.maintainerr.info` and it never contacts you.
 
 It could not reach back if it tried, for three separate reasons. It never
 learns your address, so it has nowhere to send anything. It contains no
@@ -143,52 +164,59 @@ accepted, `400` or `413` when rejected. If this server were taken over
 completely tomorrow, the worst it could do to your install is answer with a
 status code that Maintainerr ignores.
 
-**Can we see your IP address? No.** This code never reads it, so it is not in
-the database and not in any log. Nothing hands it on to us.
+### 2. Do we have your IP address?
 
-That is checkable rather than a promise, which matters more. Reading a
-caller's address takes a deliberate line of code, and neither the header nor
-the `cf` object it would come from appears anywhere in this worker: it reads
-the request body, method and path, nothing else. There is nowhere to put one
-either, since `schema.sql` has thirteen columns and every write binds only the
-fields listed above plus the week number from our own clock. Cloudflare's
-request logging is switched off in `wrangler.toml`, so the platform keeps no
-record of the request. Could we change that? Only in the open. Every one of
-those lines lives in this public repo, so turning any of it on means a commit
-with your name on it, on a page promising the opposite.
+**No.** You can check that instead of trusting us. Reading an address takes a
+deliberate line of code and this worker has none: `src/index.ts` reads the
+body, method and path, nothing else. Request logging is off in
+`wrangler.toml`, so the platform keeps no record either.
+
+**Your address arrives in a header we cannot remove.** Cloudflare puts it in
+`x-real-ip`, and no Cloudflare setting takes it off; we checked against the
+running worker. We do remove `cf-connecting-ip`, the header any code would
+normally read, which stops a careless change here from picking one up by
+accident. Neither is read, and nothing writes one down, so the guarantee is the
+code rather than the platform.
 
 One thing is worth naming rather than leaving for you to find. Cloudflare's
 dashboard shows how many requests came from each country, the ordinary traffic
 analytics that every site owner has. That is a count, not an address; we do
 not collect it, store it, or have any way to tie it to a ping.
 
-**Could my setup be unusual enough to identify me? Not in anything published.**
-Nothing appears on the public page until 10 installs report it, so a rare
-combination never shows up there. It exists in the database as a row meaning
-"one install runs this combination", with no identifier, no address, and no
-time more precise than the week. There is nothing in that row to connect to a
-person.
+### 3. Could my setup be unusual enough to identify me?
 
-**Can someone watching my network see the pings? Yes, and nothing more.** Your
-ISP already sees every connection you make. A ping is one more HTTPS request,
-once a week, to a public address. Maintainerr picks a fixed weekly moment for
-it on your own machine, so the timing repeats, which tells an observer nothing
-they did not already know from watching the connection itself.
+**No.** A rare combination is stored as a row saying one install runs it, with
+no identifier, no address, and no time more precise than the week. There is
+nothing in that row that points to a person, and no key that joins it to any
+other row. It also stays off the public page until ten installs report it.
 
-**How long do you keep it? Indefinitely, and it makes no difference.** The
-rows are counters: this many installs, that week. They hold no identifier, so
-a year-old row is exactly as anonymous as today's and never becomes more
-revealing. The public page shows the last 8 weeks.
+### 4. Can someone watching my network see the pings?
 
-**Can I have my data deleted? There is nothing to delete.** No ping carries an
-identifier, so no row is yours to find. That is the same property that makes
-it anonymous in the first place. If you would rather not send it at all, turn
-telemetry off in Maintainerr and nothing further is sent.
+**Yes, and nothing more.** Your ISP already sees every connection you make. A
+ping is one more HTTPS request, once a week, to a public address. Maintainerr
+picks a fixed weekly moment for it on your own machine, so the timing repeats,
+which tells an observer nothing they did not already know from watching the
+connection itself.
 
-**Anyone can post to the endpoint. Is that a risk to me? No.** `POST
-/v1/ingest` takes no credential, and cannot: issuing one would mean issuing an
-identifier, the one thing this design refuses to do. Here is exactly what that
-is worth to an attacker.
+### 5. How long do you keep it?
+
+**Indefinitely, and it makes no difference.** The rows are counters: this many
+installs, that week. They hold no identifier, so a year-old row is exactly as
+anonymous as today's and never becomes more revealing. The public page shows
+the last 8 weeks.
+
+### 6. Can I have my data deleted?
+
+**There is nothing to delete.** No ping carries an identifier, so no row is
+yours to find. That is the same property that makes it anonymous in the first
+place. If you would rather not send it at all, turn telemetry off in
+Maintainerr and nothing further is sent.
+
+### 7. Anyone can post to the endpoint. Is that a risk to me?
+
+**No.** `POST /v1/ingest` takes no credential, and cannot: issuing one would
+mean issuing an identifier, the one thing this design refuses to do. Here is
+exactly what that is worth to an attacker.
 
 What they **cannot** do:
 
