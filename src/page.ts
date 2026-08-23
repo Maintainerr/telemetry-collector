@@ -138,7 +138,8 @@ export const PAGE = `<!doctype html>
       rule_prop: 'Rule properties in use', integration: 'Integrations configured',
       feature: 'Features in use', notif_agent: 'Notification agents',
       locale: 'Locale', media_type: 'Rule media types',
-      arr_action: 'Collection *arr actions' };
+      arr_action: 'Collection *arr actions',
+      usage_collectionItems: 'Items in collections' };
     // arr_action arrives as Maintainerr's action names in upper case. The
     // stored token is left verbatim; only the display is normalised, so every
     // card reads the same way.

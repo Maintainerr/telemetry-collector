@@ -104,6 +104,7 @@ one.
 | `usage.manualCollections` | `usage_manualCollections` | 1 | 8 chars | `0` |
 | `usage.exclusions` | `usage_exclusions` | 1 | 8 chars | `25+` |
 | `usage.notifications` | `usage_notifications` | 1 | 8 chars | `1` |
+| `usage.collectionItems` | `usage_collectionItems` | 1 | 8 chars | `5k-15k` |
 | `rulesApps[]` | `rules_app` | 10 | 16 chars | `radarr` |
 | `ruleProperties[]` | `rule_prop` | 25 | 48 chars | `plex.addDate` |
 | `integrations[]` | `integration` | 16 | 24 chars | `seerr` |
@@ -115,6 +116,10 @@ one.
 `arr_action` values arrive as Maintainerr's action names in upper case and are
 stored verbatim; the dashboard shows them in lower case so every metric reads
 the same way.
+`usage_collectionItems` is the total number of rows across every collection,
+bucketed to `0`, `1-499`, `500-2k`, `2k-5k`, `5k-15k` or `15k+`. It is the only
+usage counter that distinguishes a large install from a small one; the rest
+top out at `25+`.
 `rule_prop` values come from Maintainerr's own fixed property list.
 `integrations` is drawn from `radarr`, `sonarr`, `sportarr`, `seerr`,
 `tautulli`, `streamystats`, `tracearr`, `downloadClient`; `features` from

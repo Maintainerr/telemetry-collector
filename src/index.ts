@@ -40,6 +40,7 @@ const USAGE = [
   'manualCollections',
   'exclusions',
   'notifications',
+  'collectionItems',
 ];
 
 interface Census {
