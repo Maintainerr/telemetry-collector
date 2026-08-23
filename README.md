@@ -82,9 +82,9 @@ with `400`; other fields fall back.
 `mediaServer` is one of `plex`, `jellyfin`, `emby`, `none`. That is the whole
 row, and the ISO week is the only timestamp.
 
-### Rich sample, 1 week in 128
+### Rich sample, 1 week in 32
 
-About once every 2.5 years per install, a ping also carries config detail.
+About once every 7 months per install, a ping also carries config detail.
 Each entry becomes a separate `(week, metric, value)` counter and the payload
 is thrown away, so no combination of these fields exists at rest. Unknown
 fields are dropped before any write. Lists are de-duplicated, then cut to the
@@ -255,7 +255,7 @@ appears in it. Someone flooding the endpoint would.
 | Method | Path         | Purpose                                          |
 | ------ | ------------ | ------------------------------------------------ |
 | GET    | `/`          | Public dashboard, renders `/v1/stats`, no third-party requests |
-| POST   | `/v1/ingest` | Weekly census ping, plus rich sample 1/128 weeks  |
+| POST   | `/v1/ingest` | Weekly census ping, plus rich sample 1/32 weeks   |
 | GET    | `/v1/stats`  | Public dataset: census marginals and sample facts |
 
 The dashboard is a thin view over the public JSON. There is no private view of
@@ -271,12 +271,14 @@ well below the limit; it protects the whole account.
 
 | Instances | Requests/day (telemetry) | D1 writes/day | Verdict |
 | --------- | ------------------------ | ------------- | ------- |
-| 500K      | ~71.5K                   | ~88K          | fits, ~12% write headroom |
-| ~600K     | ~86K                     | ~103K         | at the line, turn a knob |
+| 71K       | ~10K                     | ~21K          | fits, wide headroom |
+| 200K      | ~29K                     | ~60K          | fits, ~40% write headroom |
+| ~330K     | ~47K                     | ~100K         | at the line, turn a knob |
 
-Knob order: trim the `ruleProperties` cap, then `SAMPLE_DIVISOR` 256, then
-census biweekly. The census is the binding term at 1 write per ping; the rich
-sample costs only ~17K writes/day.
+Knob order: trim the `ruleProperties` cap, then `SAMPLE_DIVISOR` 64, then
+census biweekly. The census is no longer the binding term: at 35 facts per
+sampled ping the 1/32 rich sample costs slightly more again, ~31K writes/day
+at 200K instances.
 
 ## Deploy
 

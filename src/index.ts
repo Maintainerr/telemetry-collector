@@ -9,11 +9,11 @@ const K = 10;
 
 /**
  * Rich-sample divisor: an instance includes its detailed `sample` block in
- * 1 week out of this many (~once every 2.5 years per instance). Must match
+ * 1 week out of this many (~once every 7 months per instance). Must match
  * TELEMETRY_SAMPLE_DIVISOR in the Maintainerr client. Census fields arrive
  * from every instance every week and are exact.
  */
-const SAMPLE_DIVISOR = 128;
+const SAMPLE_DIVISOR = 32;
 
 /** ISO 8601 week of a date (default now), e.g. "2026-W34". */
 const week = (t: Date = new Date()): string => {

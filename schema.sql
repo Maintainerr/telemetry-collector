@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS weekly_counts (
   PRIMARY KEY (week, version, version_tag, is_docker, node_major, arch, platform, media_server)
 ) WITHOUT ROWID;
 
--- RICH SAMPLE: 1-in-128 weekly pings additionally carry config/usage
+-- RICH SAMPLE: 1-in-32 weekly pings additionally carry config/usage
 -- detail, stored ONLY as independent per-dimension counters. No payload
 -- rows, no identifiers, no field combinations. Linking a sample to a
 -- source is impossible by construction. New facts need no migration.
