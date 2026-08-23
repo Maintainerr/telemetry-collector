@@ -293,12 +293,17 @@ well below the limit; it protects the whole account.
 | 200K      | ~29K                     | ~60K          | fits, ~40% write headroom |
 | ~330K     | ~47K                     | ~100K         | at the line, turn a knob |
 
-Knob order: trim the `ruleProperties` cap, then census biweekly. Raising
-`SAMPLE_DIVISOR` is deliberately not on that list. It is safe only before a
-release, or in a release that moves the client constant with it. Changed
-alone, the fleet spends months split across two sampling rates while
-`meta.sampleDivisor` advertises one, skewing every estimate until the old
-versions are gone.
+Only one knob is collector-side: trim the `ruleProperties` cap, which takes
+effect the moment it deploys.
+
+Raising `SAMPLE_DIVISOR` and moving the census to biweekly are both
+client-side, and neither is casually turnable. Installs upgrade over months,
+so either one leaves the fleet split across two behaviours while the collector
+describes a single one. The divisor skews every estimate built on
+`meta.sampleDivisor`. A biweekly census is worse: an install reporting every
+other week is missing from half of them, so the instance count stops being
+exact, which is the one thing `/v1/stats` says it is. Both are safe only
+before a release, or in a release that moves the client with them.
 
 The census is no longer the binding term: at 35 facts per sampled ping the
 1/32 rich sample costs slightly more again, ~31K writes/day at 200K
