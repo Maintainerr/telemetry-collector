@@ -122,7 +122,8 @@ top out at `25+`.
 `rule_prop` values come from Maintainerr's own fixed property list.
 `integrations` is drawn from `radarr`, `sonarr`, `sportarr`, `seerr`,
 `tautulli`, `streamystats`, `tracearr`, `downloadClient`; `features` from
-`arrTagExclusionsRadarr`, `arrTagExclusionsSonarr`, `overlays` and
+`overlays`, `keepInMaintainerrOnly`, `leftoverCleanup`,
+`arrTagExclusionsRadarr`, `arrTagExclusionsSonarr` and
 `metadata_<preference>`.
 
 Cardinality caps bound how many rows one ping can write. They are not a list
