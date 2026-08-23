@@ -29,6 +29,9 @@ Nothing is sold. No advertising, no third parties, no profile of you. The
 numbers are public at
 [telemetry.maintainerr.info](https://telemetry.maintainerr.info).
 
+It is on unless you turn it off. Maintainerr asks once in the web interface
+and never asks again. Question 8 below has the two ways to stop it.
+
 ## What we never collect
 
 **No names or personal data of any kind.** Not yours, not your users'.
@@ -144,6 +147,7 @@ new question is not a disclosure, it is a worry.
 | 5. How long do you keep it? | Indefinitely, and it makes no difference. |
 | 6. Can I have my data deleted? | There is nothing to delete. |
 | 7. Anyone can post to the endpoint. Is that a risk to me? | No. |
+| 8. How do I turn it off? | In the web interface, or with `TELEMETRY=off`. |
 
 Here is each of those, with the reasoning.
 
@@ -250,6 +254,20 @@ Cloudflare's abuse log records the addresses of requests a rule acts on. A
 normal weekly ping never trips a rate limit, so an ordinary install never
 appears in it. Someone flooding the endpoint would.
 
+### 8. How do I turn it off?
+
+**Two ways, and the environment variable wins.** Maintainerr asks once, the
+first time you open the web interface after setup, and never asks again. It
+reports until you say otherwise.
+
+- **In the web interface:** **Settings > About > Help us improve it**. The same
+  page shows the exact report your server would send.
+- **In the environment:** set `TELEMETRY=off`. It overrides the stored setting,
+  so it holds whatever the toggle says.
+
+Turning it off stops the next ping. There is nothing to delete afterwards, for
+the reason in question 6.
+
 ## Endpoints
 
 | Method | Path         | Purpose                                          |
@@ -275,10 +293,16 @@ well below the limit; it protects the whole account.
 | 200K      | ~29K                     | ~60K          | fits, ~40% write headroom |
 | ~330K     | ~47K                     | ~100K         | at the line, turn a knob |
 
-Knob order: trim the `ruleProperties` cap, then `SAMPLE_DIVISOR` 64, then
-census biweekly. The census is no longer the binding term: at 35 facts per
-sampled ping the 1/32 rich sample costs slightly more again, ~31K writes/day
-at 200K instances.
+Knob order: trim the `ruleProperties` cap, then census biweekly. Raising
+`SAMPLE_DIVISOR` is deliberately not on that list. It is safe only before a
+release, or in a release that moves the client constant with it. Changed
+alone, the fleet spends months split across two sampling rates while
+`meta.sampleDivisor` advertises one, skewing every estimate until the old
+versions are gone.
+
+The census is no longer the binding term: at 35 facts per sampled ping the
+1/32 rich sample costs slightly more again, ~31K writes/day at 200K
+instances.
 
 ## Deploy
 
