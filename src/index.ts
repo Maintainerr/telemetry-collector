@@ -40,6 +40,7 @@ const USAGE = [
   'manualCollections',
   'exclusions',
   'notifications',
+  'collectionItems',
 ];
 
 interface Census {
@@ -86,9 +87,6 @@ const pickCensus = (b: Record<string, any> | null): Census | null => {
  */
 function sampleFacts(s: Record<string, any>): [string, string][] {
   const f: [string, string][] = [['sample', 'all']]; // sampled-ping denominator
-
-  const locale = tok(s?.locale, 8);
-  if (locale) f.push(['locale', locale]);
 
   for (const m of USAGE) {
     const bucket = tok(s?.usage?.[m], 8);
