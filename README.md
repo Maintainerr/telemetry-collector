@@ -97,7 +97,6 @@ one.
 | Field sent | Metric | Max values | Value limit | Example value |
 | ---------- | ------ | ---------- | ----------- | ------------- |
 | *(implicit)* | `sample` | 1 | `all` | sampled-ping denominator |
-| `locale` | `locale` | 1 | 8 chars | `en` |
 | `usage.ruleGroups` | `usage_ruleGroups` | 1 | 8 chars | `10-24` |
 | `usage.activeRuleGroups` | `usage_activeRuleGroups` | 1 | 8 chars | `5-9` |
 | `usage.collections` | `usage_collections` | 1 | 8 chars | `2-4` |

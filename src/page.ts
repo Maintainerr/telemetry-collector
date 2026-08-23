@@ -137,17 +137,41 @@ export const PAGE = `<!doctype html>
     const LABELS = { rules_app: 'Rules target (apps)',
       rule_prop: 'Rule properties in use', integration: 'Integrations configured',
       feature: 'Features in use', notif_agent: 'Notification agents',
-      locale: 'Locale', media_type: 'Rule media types',
+      media_type: 'Rule media types',
       arr_action: 'Collection *arr actions',
+      usage_ruleGroups: 'Rule groups',
+      usage_activeRuleGroups: 'Active rule groups',
+      usage_collections: 'Collections',
+      usage_manualCollections: 'Manual collections',
+      usage_exclusions: 'Exclusions',
+      usage_notifications: 'Notifications configured',
       usage_collectionItems: 'Items in collections' };
     // arr_action arrives as Maintainerr's action names in upper case. The
     // stored token is left verbatim; only the display is normalised, so every
     // card reads the same way.
     const display = (metric, value) =>
       metric === 'arr_action' ? String(value).toLowerCase() : value;
+    // usage_* values are ordinal size buckets, so ranking them by count prints
+    // a distribution out of order: 500-2k above 0 above 5k-15k. Rank on the
+    // first number in the bucket, expanding a k or m suffix, and sort on that.
+    // Anything without a leading number sorts last rather than at zero.
+    // Backslashes are doubled because PAGE is a template literal: the doubled
+    // form is what emits a single backslash in the browser. Written singly it
+    // compiles fine and silently ships /^(d+...)/, which matches nothing and
+    // flattens the sort. Backticks cannot appear in this file at all.
+    const rank = (v) => {
+      const m = String(v).match(/^(\\d+(?:\\.\\d+)?)([km])?/i);
+      if (!m) return Infinity;
+      return parseFloat(m[1]) *
+        (m[2] ? (m[2].toLowerCase() === 'k' ? 1e3 : 1e6) : 1);
+    };
     for (const [metric, pairs] of Object.entries(groups)) {
+      // Selection stays by count so the cap keeps the largest groups; only the
+      // display order of the survivors changes.
       pairs.sort((a, b) => b[1] - a[1]);
-      const est = pairs.slice(0, 12).map(([k, v]) =>
+      const top = pairs.slice(0, 12);
+      if (metric.startsWith('usage_')) top.sort((a, b) => rank(a[0]) - rank(b[0]));
+      const est = top.map(([k, v]) =>
         [display(metric, k), Math.round((v / sampleAll) * total)]);
       html += card((LABELS[metric] ?? metric) + ' (estimated)',
         rows(est, total, '~'));
