@@ -1,30 +1,49 @@
 name: Dependabot auto-merge
 on: pull_request_target
 
-permissions:
-  contents: write
-  pull-requests: write
+# Nothing here uses the workflow's own GITHUB_TOKEN: every API call runs through
+# the App token minted below. So the job needs no permissions of its own, and
+# an empty map is the least privilege this trigger can be given. `pull_request_target`
+# runs against the base repo with secrets in scope, which is exactly why the
+# default token should carry nothing.
+permissions: {}
+
+# Dependabot force-pushes its branch to rebase, and each push re-fires
+# `pull_request_target`. Without this, a second run starts while the first is
+# still watching checks and both race to merge the same PR. Keyed per PR so a
+# busy day does not drop other PRs: GitHub keeps only one pending run per group,
+# so a repo-wide key would silently cancel queued merges.
+concurrency:
+  group: dependabot-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   dependabot:
     runs-on: ubuntu-latest
+    # `gh pr checks --watch` blocks until every required check settles. Cap it so
+    # a check that never reports cannot hold a runner for the 6 hour default.
+    timeout-minutes: 30
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Create GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        # Pinned to a commit rather than a tag. Tags are mutable, and this step
+        # mints a token that can approve and merge.
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ secrets.MERGE_APP_ID }}
           private-key: ${{ secrets.MERGE_APP_KEY }}
 
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v3.1.0
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: "${{ steps.app-token.outputs.token }}"
-          skip-commit-verification: true
+          # Commit verification is deliberately left ON (the action's default).
+          # It checks that the commits really are Dependabot's, which is the one
+          # assurance that matters when the reward for a match is an auto-merge.
 
-      - name: Approve PR + merge after the deploy check passes
+      - name: Approve PR + merge after required checks pass
         if: ${{ steps.metadata.outputs.update-type != 'version-update:semver-major' }}
         run: |
           set -euo pipefail
@@ -35,47 +54,15 @@ jobs:
             echo "PR already approved."
           fi
 
-          # Maintainerr/Maintainerr waits with `gh pr checks --required --watch`.
-          # That is not usable here yet: it needs branch protection with the
-          # deploy marked as a required check, which is not configured.
-          # Plain `--watch` is not a safe substitute either: this job runs on
-          # pull_request_target, so it appears in the PR's own check list and
-          # would end up waiting on itself.
-          #
-          # So poll the one check that actually gates correctness: the Cloudflare
-          # Workers Builds deploy. Switch to the upstream `--required --watch`
-          # line once branch protection is available and this check is required.
-          echo "Waiting for the Workers Builds check to conclude..."
-          # `gh pr checks` exits 1 when a PR has no checks reported yet, which is
-          # the normal state for the first seconds after Dependabot opens one.
-          # Swallow that so the poll keeps waiting instead of failing the job.
-          state=""
-          for _ in $(seq 1 60); do
-            checks=$(gh pr checks "$PR_URL" --json name,state 2>/dev/null || echo '[]')
-            state=$(printf '%s' "$checks" \
-              | jq -r '[.[] | select(.name | startswith("Workers Builds")) | .state] | first // "PENDING"')
-            case "$state" in
-              SUCCESS)
-                echo "Deploy check passed."
-                break
-                ;;
-              FAILURE|CANCELLED|TIMED_OUT|ACTION_REQUIRED|STALE)
-                echo "::error title=Deploy check failed::Workers Builds reported ${state}; not merging."
-                exit 1
-                ;;
-              *)
-                sleep 20
-                ;;
-            esac
-          done
+          # `Workers Builds: telemetry-collector` is a required check on
+          # development, so --required covers the deploy without naming it here.
+          echo "Waiting for required checks to complete successfully..."
+          gh pr checks "$PR_URL" --required --watch
 
-          if [ "$state" != "SUCCESS" ]; then
-            echo "::error title=Deploy check timed out::Workers Builds did not conclude in 20 minutes."
-            exit 1
-          fi
-
-          echo "Merging..."
+          echo "Required checks passed. Merging..."
           gh pr merge --admin --squash "$PR_URL"
         env:
+          # Passed as env, never interpolated into the script body: `${{ }}` inside
+          # `run:` would let PR-controlled text execute as shell.
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
