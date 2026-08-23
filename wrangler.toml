@@ -12,11 +12,12 @@ send_metrics = false
 workers_dev = false
 preview_urls = false
 
-# Runs on the FREE Workers plan. Budget at 500K instances: ~71.5K req/day
-# (cap 100K) and ~88K D1 row writes/day (cap 100K). Census is 1 write per
-# ping, the 1/128 rich sample adds ~17K/day. Free-tier ceiling ~550-650K
-# instances; knob order if approaching it: trim the ruleProperties cap ->
-# SAMPLE_DIVISOR 256 -> census biweekly.
+# Runs on the FREE Workers plan. Budget at 200K instances: ~29K req/day
+# (cap 100K) and ~60K D1 row writes/day (cap 100K). Census is 1 write per
+# ping; at 35 facts per sampled ping the 1/32 rich sample adds slightly more
+# again, so it is now the larger term. Free-tier ceiling ~330K instances;
+# knob order if approaching it: trim the ruleProperties cap ->
+# SAMPLE_DIVISOR 64 -> census biweekly.
 
 # wrangler d1 create maintainerr-telemetry
 # wrangler d1 execute maintainerr-telemetry --remote --file=schema.sql
