@@ -29,8 +29,7 @@ Nothing is sold. No advertising, no third parties, no profile of you. The
 numbers are public at
 [telemetry.maintainerr.info](https://telemetry.maintainerr.info).
 
-It is on unless you turn it off. Maintainerr asks once in the web interface
-and never asks again. Question 8 below has the two ways to stop it.
+It is on unless you turn it off. Question 8 below has the two ways to stop it.
 
 ## What we never collect
 
@@ -261,9 +260,12 @@ appears in it. Someone flooding the endpoint would.
 
 ### 8. How do I turn it off?
 
-**Two ways, and the environment variable wins.** Maintainerr asks once, the
-first time you open the web interface after setup, and never asks again. It
-reports until you say otherwise.
+**Two ways, and the environment variable wins.** New installs are not asked,
+the report is on from the start. Installs upgrading from a version without the
+report are asked in the web interface once the media server is set up. "Keep
+it on" saves the answer and the prompt never returns. "Turn it off in settings"
+only opens the settings page. Until you _save_ the toggle there, the prompt
+appears again on the next visit.
 
 - **In the web interface:** **Settings > About > Help us improve it**. The same
   page shows the exact report your server would send.
